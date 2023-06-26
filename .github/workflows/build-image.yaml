@@ -20,40 +20,108 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
 
-      - name: Set up Docker Buildx with docker driver
-        uses: docker/setup-buildx-action@v2
+    - name: Set up Docker Buildx with docker driver
+      uses: docker/setup-buildx-action@v2
 
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.IMAGE_REPOSITORY }}
-          tags: type=raw,value=${{ inputs.tag }}
-          labels: |
-            org.opencontainers.image.documentation=https://github.com/jugggao/dockerfile-chrome/blob/master/README
-            org.opencontainers.image.vendor=JuggGao
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.IMAGE_REPOSITORY }}
+        tags: type=raw,value=${{ inputs.tag }}
+        labels: |
+          org.opencontainers.image.documentation=https://github.com/jugggao/dockerfile-chrome/blob/master/README
+          org.opencontainers.image.vendor=JuggGao
 
-      - name: Download parent image artifact
-        if: ${{ inputs.parent != '' }}
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}
+    - name: Download parent image artifact
+      if: ${{ inputs.parent != '' }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}
 
-      - name: Load parent image artifact
-        if: ${{ inputs.parent != '' }}
-        run: |
-          docker image load --input ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}.tar.gz
+    - name: Load parent image artifact
+      if: ${{ inputs.parent != '' }}
+      run: |
+        docker image load --input ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}.tar.gz
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: ${{ inputs.folder }}
-          load: true
-          labels: ${{ steps.meta.outputs.labels }}
-          tags: jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+    - name: Build Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ inputs.folder }}
+        load: true
+        labels: ${{ steps.meta.outputs.labels }}
+        tags: jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+
+    - name: Test
+      env:
+        IMAGE_NAME: jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+      run: |
+        ${{ inputs.folder }}/test.sh
+
+    - name: Export image artifact
+      run: |
+        docker image save zenika/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }} | gzip > ${{ env.IMAGE_REPOSITORY }}-${{ inputs.tag }}.tar.gz
+
+    - name: Upload image artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.IMAGE_REPOSITORY }}-${{ inputs.tag }}
+        path: ${{ env.IMAGE_REPOSITORY }}-${{ inputs.tag }}.tar.gz
+        retention-days: 1
+
+    - name: Compute versioned tag
+      id: tag
+      env:
+        IMAGE_NAME: zenika/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+        CHROMIUM_VERSION_REGEXP: 'Chromium ([0-9]+)\.'
+        CHROMEDRIVER_VERSION_REGEXP: 'ChromeDriver ([0-9]+)\.'
+      run: |
+        CURRENT_CHROMIUM_VERSION=$(docker container run --rm --entrypoint '' ${IMAGE_NAME} chromium-browser --version)
+        if [[ ${CURRENT_CHROMIUM_VERSION} =~ ${CHROMIUM_VERSION_REGEXP} ]]; then
+          echo "Successfully extracted Chromium major version of ${BASH_REMATCH[1]} from '${CURRENT_CHROMIUM_VERSION}'"
+        else
+          echo "Cannot extract Chromium major version from '${CURRENT_CHROMIUM_VERSION}'" >&2
+          exit 1
+        fi
+        CHROMIUM_VERSION=${BASH_REMATCH[1]}
+        TAG=${CHROMIUM_VERSION}
+        if [[ '${{ inputs.folder }}' != '.' ]]; then
+          TAG=${TAG}-${{ inputs.tag }}
+        fi
+        echo "value=${TAG}" >> $GITHUB_OUTPUT
+
+    - name: Login to DockerHub
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx with docker-container driver
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: docker/setup-buildx-action@v2
+      with:
+        driver: docker-container
+
+    - name: Build and push
+      if: ${{ github.ref == 'refs/heads/main' }}
+      env:
+        IMAGE_NAME: ${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+        IMAGE_VERSIONED_NAME: ${{ env.IMAGE_REPOSITORY }}:${{ steps.tag.outputs.value }}
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ inputs.folder }}
+        platforms: linux/amd64,linux/arm64
+        labels: ${{ steps.meta.outputs.labels }}
+        tags: |
+          jugggao/${{ env.IMAGE_NAME }}
+          jugggao/${{ env.IMAGE_VERSIONED_NAME }}
+        push: true
+        cache-from: type=gha
+        cache-to: type=gha
