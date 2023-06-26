@@ -1,0 +1,59 @@
+name: build-image
+on:
+  workflow_call:
+    inputs:
+      folder:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      parent:
+        required: false
+        type: string
+        default: ''
+
+env:
+  IMAGE_REPOSITORY: chrome
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx with docker driver
+        uses: docker/setup-buildx-action@v2
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_REPOSITORY }}
+          tags: type=raw,value=${{ inputs.tag }}
+          labels: |
+            org.opencontainers.image.documentation=https://github.com/jugggao/dockerfile-chrome/blob/master/README
+            org.opencontainers.image.vendor=JuggGao
+
+      - name: Download parent image artifact
+        if: ${{ inputs.parent != '' }}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}
+
+      - name: Load parent image artifact
+        if: ${{ inputs.parent != '' }}
+        run: |
+          docker image load --input ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}.tar.gz
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ${{ inputs.folder }}
+          load: true
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
