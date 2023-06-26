@@ -1,4 +1,4 @@
-[![Docker Build Status](https://img.shields.io/github/actions/workflow/status/jugggao/dockerfile-chrome/build.yml)](https://github.com/jugggao/dockerfile-chrome/actions/workflows/build.yml)
+[![Docker Build Status](https://img.shields.io/github/actions/workflow/status/jugggao/dockerfile-alpine-chrome/build.yml)](https://github.com/jugggao/dockerfile-alpine-chrome/actions/workflows/build.yml)
 
 ## dockerfile-chrome
 

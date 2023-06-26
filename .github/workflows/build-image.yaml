@@ -14,7 +14,7 @@ on:
         default: ''
 
 env:
-  IMAGE_REPOSITORY: chrome
+  IMAGE_REPOSITORY: alpine-chrome
 
 jobs:
   docker:
