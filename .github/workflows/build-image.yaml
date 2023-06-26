@@ -48,6 +48,7 @@ jobs:
     - name: Load parent image artifact
       if: ${{ inputs.parent != '' }}
       run: |
+        ls &&
         docker image load --input ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}.tar.gz
 
     - name: Build Docker image
