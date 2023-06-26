@@ -48,7 +48,6 @@ jobs:
     - name: Load parent image artifact
       if: ${{ inputs.parent != '' }}
       run: |
-        ls &&
         docker image load --input ${{ env.IMAGE_REPOSITORY }}-${{ inputs.parent }}.tar.gz
 
     - name: Build Docker image
@@ -67,7 +66,7 @@ jobs:
 
     - name: Export image artifact
       run: |
-        docker image save zenika/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }} | gzip > ${{ env.IMAGE_REPOSITORY }}-${{ inputs.tag }}.tar.gz
+        docker image save jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }} | gzip > ${{ env.IMAGE_REPOSITORY }}-${{ inputs.tag }}.tar.gz
 
     - name: Upload image artifact
       uses: actions/upload-artifact@v3
