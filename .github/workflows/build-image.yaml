@@ -78,7 +78,7 @@ jobs:
     - name: Compute versioned tag
       id: tag
       env:
-        IMAGE_NAME: zenika/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
+        IMAGE_NAME: jugggao/${{ env.IMAGE_REPOSITORY }}:${{ inputs.tag }}
         CHROMIUM_VERSION_REGEXP: 'Chromium ([0-9]+)\.'
         CHROMEDRIVER_VERSION_REGEXP: 'ChromeDriver ([0-9]+)\.'
       run: |
