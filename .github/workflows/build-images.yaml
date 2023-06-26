@@ -16,3 +16,23 @@ jobs:
       folder: .
       tag: latest
     secrets: inherit
+
+  build-with-node:
+    needs:
+    - build-base
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      folder: with-node
+      tag: with-node
+      parent: latest
+    secrets: inherit
+
+  build-with-puppeteer:
+    needs:
+    - build-with-node
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      folder: with-puppeteer
+      tag: with-puppeteer
+      parent: with-node
+    secrets: inherit
