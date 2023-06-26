@@ -36,3 +36,13 @@ jobs:
       tag: with-puppeteer
       parent: with-node
     secrets: inherit
+
+  build-with-puppeteer-xvfb:
+    needs:
+    - build-with-puppeteer
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      folder: with-puppeteer-xvfb
+      tag: with-puppeteer-xvfb
+      parent: with-puppeteer
+    secrets: inherit
