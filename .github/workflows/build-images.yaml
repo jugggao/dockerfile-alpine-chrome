@@ -46,3 +46,13 @@ jobs:
       tag: with-puppeteer-xvfb
       parent: with-puppeteer
     secrets: inherit
+
+  build-with-puppeteer-xvfb-ffmpeg:
+    needs:
+    - build-with-puppeteer
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      folder: with-puppeteer-xvfb-ffmpeg
+      tag: with-puppeteer-xvfb-ffmpeg
+      parent: with-puppeteer
+    secrets: inherit
